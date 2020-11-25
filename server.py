@@ -31,4 +31,5 @@ while True:
         info = record.find_one({"Name" : Name})
         replyMsg = str(info["Number"])
         s.sendto(replyMsg.encode(), addr)
+        print("Query completed!")
         
