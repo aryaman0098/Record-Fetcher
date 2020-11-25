@@ -11,4 +11,7 @@ while True:
     if message == "Q" or message == "q":
         break
     data, addr = s.recvfrom(4096)
-    print("The phone number of " + message + " is " + data.decode())
+    if data.decode() == "Error":
+        print("An error again! Please try again")
+    else:
+        print("The phone number of " + message + " is " + data.decode())

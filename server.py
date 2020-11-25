@@ -27,9 +27,15 @@ while True:
         s.close()
         break
     else:
-        Name = str(data.decode())
-        info = record.find_one({"Name" : Name})
-        replyMsg = str(info["Number"])
-        s.sendto(replyMsg.encode(), addr)
-        print("Query completed!")
+        try:
+            Name = str(data.decode())
+            info = record.find_one({"Name" : Name})
+            replyMsg = str(info["Number"])
+            s.sendto(replyMsg.encode(), addr)
+            print("Query completed!")
+        except:
+            print("Query completed!")
+            replyMsg = "Error"
+            s.sendto(replyMsg.encode(), addr)
+            continue
         
