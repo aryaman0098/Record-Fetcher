@@ -1,3 +1,4 @@
+#Creating protocol for communication between server and client
 class protocol:
     
     query = None
