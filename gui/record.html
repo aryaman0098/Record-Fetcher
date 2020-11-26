@@ -1,0 +1,65 @@
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="linkers/sweetalert.js"></script>
+  <script src="linkers/record.js"></script>
+  <style>
+    body{
+      background-image: url("images/h.webp");
+      background-position: center; /* Center the image */
+      background-repeat: no-repeat; /* Do not repeat the image */
+      background-size: cover;
+    }
+    .container{
+      z-index: -1;
+      margin-left: 25%;
+      margin-top: 10%;
+    }
+    input[type=button]{
+            width: 250px;
+            height: 35px;
+            background: #fff;
+            border: 1px solid #fff;
+            cursor: pointer;
+            border-radius: 2px;
+            color: #a18d6c;
+            font-family: 'Exo', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            padding: 6px;
+            margin-top: 10px;
+        }
+
+        input[type=button]:hover{
+            opacity: 0.8;
+        }
+
+        input[type=button]:active{
+            opacity: 0.6;
+        }
+  </style>
+</head>
+
+<body>
+  <br>
+  <div class="container">
+    <br>
+    <label for="name">Office Bearer:</label>
+    <input type="text" id="name" name="name">
+    <br>
+    <br>
+    <p><b>Select all the fields you want:</b></p>
+    <div>
+    <input type="checkbox" name="email" id="email" value="Email"> <label for="email">Email</label>
+    </div>
+    <div>
+    <input type="checkbox" name="phone" id="phone" value="Phone"> <label for="phone">Phone</label>
+    </div>
+    <div>
+    <input type="checkbox" name="additional" id="additional" value="Additional Records"> <label for="additional">Additional Records</label>
+    </div>
+    <div>
+    <input type="button" onclick="main()" value="Fetch"><br><br>
+    </div>
+    <a href="gui.html" style="color:white">Back</a>
+  </div>
+<body>
