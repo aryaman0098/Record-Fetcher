@@ -24,31 +24,44 @@ def createSocket():
 
 
 
+def sendData(Query, addr):
+    try:
+        if Query.header["queryLength"] == len(Query.query): #If data is intact (Note -> Implementation is faulty)
+            info = record.find_one({"Name" : Query.query[0]}) #Fetching the data entry corresponding to the query name
+            Response = protocol() #Creating a response object of type protocol
+            
+            if Query.query[1] == "both":
+                Response.createMsgProtocol(True, "", info) #Filling the required headers (Note -> True is only for authentication)    
+            else:
+                res = {}
+                res["Name"] = info["Name"]
+                res[Query.query[1]] = info[Query.query[1]]
+                Response.createMsgProtocol(True, "", res) #Filling the required headers (Note -> True is only for authentication) 
+            
+            s.sendto(pickle.dumps(Response), addr) #Sending the response data to the client
+            print("Query completed!")
+        
+        else:  #If data has been lost from client side(Note -> Implementation is faulty)
+            Response = protocol() 
+            Response.createMsgProtocol(True, "", {"Name" : "Error"})  
+            s.sendto(pickle.dumps(Response), addr)
+            print("Query completed!")
+    except:  #If the requested name is not present in the databse
+        print("Query completed!")
+        Response.createMsgProtocol(True, "", {"Name" : "No such name in directory!"})
+        s.sendto(pickle.dumps(Response), addr)
+
+
 def addressQueries():
     while True: 
         data, addr = s.recvfrom(4096) #Receiving data from client
         Query = pickle.loads(data) #Decoding the data
-        if Query.query == "q": #For terminating the connection
+        
+        if Query.query[0] == "q": #For terminating the connection
             s.close()
             break
         else:
-            try:
-                if Query.header["queryLength"] == len(Query.query): #If data is intact (Note -> Implementation is faulty)
-                    info = record.find_one({"Name" : Query.query}) #Fetching the data entry corresponding to the query name
-                    Response = protocol() #Creating a response object of type protocol
-                    Response.fillHeaders(True, "", info) #Filling the required headers (Note -> True is only for authentication)
-                    s.sendto(pickle.dumps(Response), addr) #Sending the response data to the client
-                    print("Query completed!")
-                else:  #If data has been lost from client side(Note -> Implementation is faulty)
-                    Response = protocol() 
-                    Response.fillHeaders(True, "", {"Name" : "Error"})  
-                    s.sendto(pickle.dumps(Response), addr)
-                    print("Query completed!")
-            except:  #If the requested name is not present in the databse
-                print("Query completed!")
-                Response.fillHeaders(True, "", {"Name" : "No such name in directory!"})
-                s.sendto(pickle.dumps(Response), addr)
-                continue
+            sendData(Query, addr)
         
 createSocket()
 addressQueries()

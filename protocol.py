@@ -1,10 +1,11 @@
 #Creating protocol for communication between server and client
 class protocol:
-    
+
     query = None
     response = None
+    header = None
     
-    def fillHeaders(self, auth, query, response):
+    def createMsgProtocol(self, auth, query, response):
         self.header = {"isAuthenticated" : auth,
                        "queryLength" : len(query),
                        "responseLength" : len(response)}
