@@ -1,53 +1,44 @@
-import socket
-import json
-import pickle
-from protocol import * #Importing the protocol file
+from socket import *
+from protocol import *
 
-host = socket.gethostname()
-port = 12999
-
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect((host, port))
+serverName = gethostname()
+serverPort = 12000
 
 
+name=sys.argv[1]
+lang=sys.argv[2]
+email=sys.argv[3]
+phone=sys.argv[4]
+academic=sys.argv[5]
+other=sys.argv[6]
+auth=sys.argv[7]
 
-def createQuery():
-    Query = protocol() #Creating a object of type protocol
-    Name = input("Enter the person whose details you want to find : ").lower() #Taking the user Entry corresponding to which he wants the data
-    details = input("What details you desire, Number or Email or both : ")
-    query = (Name, details)
-    Query.createMsgProtocol(True, query, "") #Filling the headers according to the input (Note -> True is for authentication, a feature that we will implement in fututre)
-    return Query
+#name='Aryaman'
+#lang='German'
+#email='1'
+#phone='0'
+#academic='1'
+#other='1'
+#auth='0'
 
-def displayResponse(Msg, Query):
-    if Msg.response["Name"] == "No such name in directory!": #Checking if no name is present in the directory corresponding to the above given name
-        print("Invalid name!")
-    elif Msg.response["Name"] == "Error": #If data got lost while sending from client 
-        print("Error occured! Retrying....")
-        s.sendto(pickle.dumps(Query), (host, port)) #Resending the same query packet
-    else:
-        if Msg.header["responseLength"] == len(Msg.response): #Checking if the data received from server has o lost bits
-            print(Msg.response)
-        else: #If data has been lost, then resending the same query packet
-            print("Error occured! Retrying....")
-            s.sendto(pickle.dumps(Query), (host, port))
+d={'name':name,'lang':lang,'email':email,'phone':phone,'academic':academic,'other':other,'auth':auth}
+
+for key in ['email','phone','academic','other']:
+	if(d[key]=='0'):
+		d.pop(key)
+
+content={}
+for i in d:
+	if(i!='auth' and i!='lang'):
+		content[i]=d[i]
 
 
-def retrieveData():
-    while True:
-        
-        Query = createQuery()
 
-        s.sendto(pickle.dumps(Query), (host, port)) #Encoding and sending the query to the server
-        
-        if Query.query[0] == "q": #For closing the connection
-            s.close()
-            break
-        
-        data, addr = s.recvfrom(4096) #Receiving the data from the server
-        Msg = pickle.loads(data) #Decoding the data
+serverName = '127.0.0.1'
+serverPort = 12000
 
-        displayResponse(Msg, Query)
-
-            
-retrieveData()
+clientSocket = socket(AF_INET, SOCK_DGRAM)
+request=protocol(clientSocket,serverName,serverPort)
+request.write_client(content,d['auth'],d['lang'])
+request.read_client()
+clientSocket.close()
