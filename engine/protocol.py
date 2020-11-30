@@ -1,18 +1,18 @@
+from socket import *
 import json
 import io
 import struct
-from googletrans import Translator
+from translate import Translator
 from pymongo import MongoClient
+import re, math
+from collections import Counter
+import difflib
+import sys
 
 mdbClient = MongoClient("mongodb+srv://Test:Test@cluster0.v7zkv.mongodb.net/<dbname>?retryWrites=true&w=majority")
 db = mdbClient.get_database("Office_Bearer_Info")
 record = db.Employee_Records
 
-d={'m':'I like to play snooker','n':'I like to play snooker'}
-translator = Translator()
-for i in d:
-	result=translator.translate(d[i], src='en', dest='fr')
-	print(result.text)
 
 class Message:
 	def __init__(self,sock,server,port):
@@ -29,21 +29,15 @@ class Message:
 
 
 	def json_encode(self,obj):
-		#return json.dumps(obj, ensure_ascii=False).encode("utf-8")
 		return json.dumps(obj).encode('utf-8')
 
 	def json_decode(self,json_bytes):
-		'''tiow = io.TextIOWrapper(io.BytesIO(json_bytes), encoding="utf-8", newline="")
-		obj = json.load(tiow)
-		tiow.close()
-		return obj'''
 		return json.loads(json_bytes.decode('utf-8')) 
 
 	def compute_checksum(self,message):
 		checksum=0
 		l=len(message)
 		if(l%2==1):
-			#message=message+struct.pack("!B", 0)
 			l=l+1
 			xs = bytearray(message)
 			xs.append(0)
@@ -58,12 +52,8 @@ class Message:
 
 	def verify(self,message,checksum):
 		message=bytes(message)
-		print(len(message))
-		#print(len(checksum))
 		l=len(message)
 		if(l%2==1):
-			#message=message+struct.pack("!B", 0)
-			print('I entered here')
 			l=l+1
 			xs = bytearray(message)
 			xs.append(0)
@@ -75,11 +65,9 @@ class Message:
 
 
 	def write_client(self,content,authentication,lang):
-		#print('Hello from write_client')
-		message=self.create_message(content,'1',authentication,lang)
-		#print('Hello from write_client')
-		self.sock.sendto(message,(self.server, self.port))
 
+		message=self.create_message(content,'1',authentication,lang)
+		self.sock.sendto(message,(self.server, self.port))
 
 	def read_server(self):
 		try:
@@ -116,21 +104,17 @@ class Message:
 									c1=self.compute_checksum(msg)
 									checksum=int.from_bytes(self.recv_data[:checksum_length], "big") 
 									c=self.verify(msg,checksum)
-									print(hex(c))
 									if(c==0xFFFF):
-										print('Verified whew')
 										self.recv_data=b""
 										self.process_request()
 
-	def process_response(self):
-		content=self.answers
-		print(content)
+	def process_response(self): 
+		print(json.dumps(self.answers))
 
 
 	def read_client(self):
 		try:
 			recv_data,addr=self.sock.recvfrom(4096)
-			print('Got from '+str(addr))
 		except Exception:
 			pass
 		else:
@@ -158,14 +142,41 @@ class Message:
 					msg=msg+self.recv_data[:content_length]
 					self.recv_data=self.recv_data[content_length:]
 					self.answers=self.json_decode(answers)
-					#checksum=struct.unpack(">H",self.recv_data[:checksum_length])[0]
 					c1=self.compute_checksum(msg)
 					checksum=int.from_bytes(self.recv_data[:checksum_length], "big") 
 					c=self.verify(msg,checksum)
 					if(c==0xFFFF):
-						if('number' in self.headers and self.headers['number']==1):
+						if('number' in self.headers and self.headers['number']=='1'):
 							self.recv_data=self.recv_data[checksum_length:]
-							# Do work for second response
+							self.answers={'first':self.answers}
+							header_length = 2
+							msg=b""
+							if(len(self.recv_data)>=header_length):
+								msg=msg+self.recv_data[:header_length]
+								self.headers_length=struct.unpack(">H",self.recv_data[:header_length])[0]
+								self.recv_data=self.recv_data[header_length:]
+
+							if(True):
+								headers_length=self.headers_length
+								if(len(self.recv_data)>=headers_length):
+									self.headers=self.json_decode(self.recv_data[:headers_length])
+									msg=msg+self.recv_data[:headers_length]
+									self.recv_data=self.recv_data[headers_length:]
+
+							content_length=self.headers["content_length"]
+							checksum_length=2
+							if(True):
+								answers=self.recv_data[:content_length]
+								msg=msg+self.recv_data[:content_length]
+								self.recv_data=self.recv_data[content_length:]
+								answers=self.json_decode(answers)
+								c1=self.compute_checksum(msg)
+								checksum=int.from_bytes(self.recv_data[:checksum_length], "big") 
+								c2=self.verify(msg,checksum)
+								if(c2==0xFFFF):
+									self.recv_data=b""
+									self.answers['second']=answers
+									self.process_response()
 						else:
 							self.recv_data=b""
 							self.process_response()
@@ -182,7 +193,6 @@ class Message:
 		message_hdr = struct.pack(">H", len(header_bytes))
 		msg = message_hdr + header_bytes + content
 		d=self.compute_checksum(msg)
-		#print('Hello from create_message')
 		c= d.to_bytes(2, 'big')
 		message=msg+c
 		return message
@@ -198,51 +208,170 @@ class Message:
 			
 
 	def process_request(self):
-		translator = Translator()
-		#result.text
 		name=self.questions['name']
 		auth=self.headers['authentication']
 		lang=self.headers['lang']
 		questions=self.questions
+		if(lang!='English'):
+			translator= Translator(to_lang=lang)
 		if(auth=='0'):
-			find=record.find_one({"name" : name})
-			if('all' in find['auth']):
-				result=translator.translate('Not authorised', src='en', dest=lang)
-				content={'gen':result.text}
-				message=self.create_message(content,'0',auth,lang)
-				self.send_data=message
-				self.write_server()
-			else:
-				find=list(record.find({'name':name}))
-				if(len(find)>0):
-					find=find[0]
-					content={'name':name}
-					for i in questions:
-						if(i not in find['auth']):
-							result=translator.translate(find[i], src='en', dest=lang)
-							content[i]=result.text
-						else:
-							result=translator.translate('Not authorised', src='en', dest=lang)
-							content[i]=result.text
+			find=list(record.find({'name':name}))
+			if(len(find)>0):
+				find=find[0]
+				result=0
+				if('all' in find['auth']):
+					if(lang!='English'):
+						result=translator.translate('Not authorised')
+					else:
+						result='Not authorised'
+					content={'name':name,'gen':result}
 					message=self.create_message(content,'0',auth,lang)
 					self.send_data=message
 					self.write_server()
 				else:
-					pass
+					find=list(record.find({'name':name}))
+					if(len(find)>0):
+						find=find[0]
+						content={'name':name}
+						translation=0
+						for i in questions:
+							if(i not in find['auth'] and i!='name'):
+								if(lang!='English'):
+									translation = translator.translate(find[i])
+								else:
+									translation=find[i]
+								content[i]=translation
+							elif(i!='name'):
+								if(lang!='English'):
+									translation = translator.translate('Not authorised')
+								else:
+									translation='Not authorised'
+								content[i]=translation
+						message=self.create_message(content,'0',auth,lang)
+						self.send_data=message
+						self.write_server()
+			else:
+				if(True):
+					possible=[]
+					message_1=0
+					message_2=0
+					find=list(record.find({}))
+					for i in find:
+						possible.append(i['name'])
+					m=difflib.get_close_matches(name,possible,len(possible),0)
+					if(True):
+						find=list(record.find({'name':m[0]}))
+						if(len(find)>0):
+							find=find[0]
+							content={'name':find['name']}
+							result=0
+							if('all' in find['auth']):
+								if(lang!='English'):
+									result=translator.translate('Not authorised')
+								else:
+									result='Not authorised'
+								content={'name':find['name'],'gen':result}
+								message_1=self.create_message(content,'0',auth,lang,2)
+								#self.send_data=message
+								#self.write_server()
+							else:
+								translation=0
+								for i in questions:
+									if(i not in find['auth'] and i!='name'):
+										if(lang!='English'):
+											translation = translator.translate(find[i])
+										else:
+											translation='Not authorised'
+										content[i]=translation
+									elif(i!='name'):
+										if(lang!='English'):
+											translation = translator.translate('Not authorised')
+										else:
+											translation='Not authorised'
+										content[i]=translation
+
+								message_1=self.create_message(content,'0',auth,lang,2)
+						find=list(record.find({'name':m[1]}))
+						if(len(find)>0):
+							find=find[0]
+							result=0
+							content={'name':find['name']}
+							if('all' in find['auth']):
+								if(lang!='English'):
+									result=translator.translate('Not authorised')
+								else:
+									result='Not authorised'
+								content={'gen':result,'name':find['name']}
+								message_2=self.create_message(content,'0',auth,lang,3)
+
+							else:
+								translation=0
+								for i in questions:
+									if(i not in find['auth'] and i!='name'):
+										if(lang!='English'):
+											translation = translator.translate(find[i])
+										else:
+											translation=find[i]
+										content[i]=translation
+									elif(i!='name'):
+										if(lang!='English'):
+											translation = translator.translate('Not authorised')
+										else:
+											translation='Not authorised'
+										content[i]=translation
+								message_2=self.create_message(content,'0',auth,lang,3)
+						self.send_data=message_1+message_2
+						self.write_server()
 
 
-
-
-
-
-
-
-
-
-						
-						
-
-
-				
-
-
+		else:
+			find=list(record.find({'name':name}))
+			if(len(find)>0):
+				find=find[0]
+				translation=0
+				content={'name':name}
+				for i in questions:
+					if(i!='name'):
+						if(lang!='English'):
+							translation = translator.translate(find[i])
+						else:
+							translation=find[i]
+						content[i]=translation
+				message=self.create_message(content,'0',auth,lang)
+				self.send_data=message
+				self.write_server()
+			else:
+				possible=[]
+				find=list(record.find({}))
+				for i in find:
+					possible.append(i['name'])
+				m=difflib.get_close_matches(name,possible,len(possible),0)
+				if(True):
+					find=list(record.find({'name':m[0]}))
+					translation=0
+					if(len(find)>0):
+						find=find[0]
+						content={'name':find['name']}
+						for i in questions:
+							if(i!='name'):
+								if(lang!='English'):
+									translation = translator.translate(find[i])
+								else:
+									translation=find[i]
+								content[i]=translation
+						message_1=self.create_message(content,'0',auth,lang,2)
+						find=list(record.find({'name':m[1]}))
+						if(len(find)>0):
+							find=find[0]
+							content={'name':find['name']}
+							translation=0
+							for i in questions:
+								if(i!='name'):
+									if(lang!='English'):
+										translation = translator.translate(find[i])
+									else:
+										translation=find[i]
+									content[i]=translation
+						message_2=self.create_message(content,'0',auth,lang,3)
+						self.send_data=message_1+message_2
+						self.write_server()

@@ -1,0 +1,2 @@
+translate==3.5.0
+pymongo==3.11.1
