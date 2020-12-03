@@ -197,7 +197,7 @@ class Message:
 		d=self.compute_checksum(msg)
 		c= d.to_bytes(2, 'big')
 		message=msg+c
-		if number == 2 or number == 3:
+		#if number == 2 or number == 3:
 			# print("Server checksum")
 			# print(hex(d))
 		return message
