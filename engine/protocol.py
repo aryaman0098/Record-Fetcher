@@ -103,6 +103,8 @@ class Message:
 									
 									c1=self.compute_checksum(msg)
 									checksum=int.from_bytes(self.recv_data[:checksum_length], "big") 
+									# print(int(checksum))
+									# print(hex(checksum))
 									c=self.verify(msg,checksum)
 									if(c==0xFFFF):
 										self.recv_data=b""
@@ -195,6 +197,9 @@ class Message:
 		d=self.compute_checksum(msg)
 		c= d.to_bytes(2, 'big')
 		message=msg+c
+		if number == 2 or number == 3:
+			# print("Server checksum")
+			# print(hex(d))
 		return message
 
 
@@ -272,8 +277,7 @@ class Message:
 									result='Not authorised'
 								content={'name':find['name'],'gen':result}
 								message_1=self.create_message(content,'0',auth,lang,2)
-								#self.send_data=message
-								#self.write_server()
+
 							else:
 								translation=0
 								for i in questions:
@@ -281,7 +285,7 @@ class Message:
 										if(lang!='English'):
 											translation = translator.translate(find[i])
 										else:
-											translation='Not authorised'
+											translation=find[i]
 										content[i]=translation
 									elif(i!='name'):
 										if(lang!='English'):

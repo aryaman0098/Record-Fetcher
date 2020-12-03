@@ -2,6 +2,10 @@
 
 This is a simple tool that uses UDP sockets to connect with the server and fetch data of a office bearer. The data is stored in MongoDB database. 
 
+# Protocol Design
+
+<img src = "protocol_design.png">
+
 
 ## Instructions
 

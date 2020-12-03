@@ -22,7 +22,6 @@ function genTable(obj) {
   let row = header.insertRow(0);
   row.insertCell(0).innerHTML = "<strong> Field </strong>";
   row.insertCell(1).innerHTML = "<strong> Value </strong>";
-  // row = table.insertRow(1)
 
   let keys = Object.keys(obj)
   let tbody= table.createTBody()
@@ -33,7 +32,6 @@ function genTable(obj) {
   }
   table.className="table table-striped table-light";
   let body = document.querySelector("#dict");
-  //let body=document.getElementById('dict');
   body.append(table); 
 
   console.log(table)
@@ -73,14 +71,10 @@ function main(){
 
 
     pyshell.on('message', message => {
-      //console.log(message.slice(0,10))
-      //console.log(message)
       let msg=JSON.parse(message)
-      //console.log(typeof(msg))
       console.log(msg)
       document.getElementById('dict').innerHTML="";
       if('first' in msg){
-        //let sent=msg.first.name+" "+msg.second.name
         document.getElementById("dict").innerHTML +="Similar results to your search"+"<br>";
         if ('gen' in msg.first) {
           document.getElementById("dict").innerHTML += "Sorry! You are not Authorized to view the Record of "+msg.first.name+'<br>';
