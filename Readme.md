@@ -28,7 +28,7 @@ Then navigate back to the main directory
 ```
 cd ..
 ```
-and run this command in your terminal
+and run these commands in your terminal
 
 ```
 npm install
