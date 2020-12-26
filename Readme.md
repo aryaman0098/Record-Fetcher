@@ -17,7 +17,7 @@ cd engine
 and run the commands in your favourite terminal to install all the dependencies
 
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 To run this project, inside the engine folder run the command in your terminal.
 
